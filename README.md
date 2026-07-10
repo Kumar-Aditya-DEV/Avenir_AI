@@ -154,20 +154,28 @@ avenir/
 │   └── package.json
 │
 ├── server/
-│   ├── controllers/
-│   ├── routes/
-│   ├── middleware/
-│   ├── services/
-│   │   ├── ollamaService.js
-│   │   ├── resumeParser.js
-│   │   ├── gapAnalyzer.js
-│   │   ├── prepPlanGenerator.js
-│   │   └── interviewService.js
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middlewares/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   │   ├── ollamaService.js
+│   │   │   ├── resumeParser.js
+│   │   │   ├── gapAnalyzer.js
+│   │   │   ├── prepPlanGenerator.js
+│   │   │   └── interviewService.js
+│   │   │
+│   │   ├── utils/
+│   │   ├── validators/
+│   │   ├── app.js
+│   │   ├── seed.js
+│   │   └── server.js
 │   │
-│   ├── models/
-│   ├── config/
-│   ├── uploads/
-│   └── server.js
+│   ├── .env
+│   ├── .gitignore
+│   └── package.json
 │
 ├── docs/
 ├── README.md
@@ -178,7 +186,7 @@ avenir/
 
 ## Prerequisites
 
-Before running the project, ensure the following are installed:
+Before running the project locally, ensure the following are installed:
 
 - Node.js 18+
 - MongoDB
