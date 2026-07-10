@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
+import axios from 'axios';
 import {
   FileUp,
   UploadCloud,
@@ -27,6 +28,7 @@ export default function UploadResumePage() {
   const [error, setError] = useState(null);
   const [showToast, setShowToast] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [parsedText, setParsedText] = useState('');
   const [confettiParticles, setConfettiParticles] = useState([]);
 
   // Simulate initial page skeleton load
@@ -93,26 +95,42 @@ export default function UploadResumePage() {
     if (acceptedFiles.length > 0) {
       const selectedFile = acceptedFiles[0];
       setFile(selectedFile);
-      startSimulatedUpload();
+      uploadFile(selectedFile);
     }
   };
 
-  const startSimulatedUpload = () => {
+  const uploadFile = async (fileToUpload) => {
     setUploadStatus('uploading');
     setProgress(0);
+    setError(null);
 
-    let currentProgress = 0;
-    const interval = setInterval(() => {
-      currentProgress += Math.floor(Math.random() * 15) + 5;
-      if (currentProgress >= 100) {
-        currentProgress = 100;
-        clearInterval(interval);
-        setUploadStatus('success');
-        setShowToast(true);
-        triggerConfetti();
-      }
-      setProgress(currentProgress);
-    }, 150);
+    const formData = new FormData();
+    formData.append('resume', fileToUpload);
+
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/resumes/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgress(percentCompleted);
+        }
+      });
+      
+      setUploadStatus('success');
+      setShowToast(true);
+      setParsedText(res.data.extractedText);
+      triggerConfetti();
+    } catch (err) {
+      setUploadStatus('idle');
+      setError({
+        type: 'upload',
+        message: err.response?.data?.message || 'Failed to upload resume'
+      });
+    }
   };
 
   const handleCancelUpload = () => {
@@ -427,7 +445,7 @@ export default function UploadResumePage() {
                       <motion.button
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        onClick={startSimulatedUpload}
+                        onClick={handleRemoveFile}
                         className="flex items-center gap-1.5 px-3.5 py-2 border border-[#E5E7EB] hover:bg-[#F8FAFC] text-xs font-semibold text-[#111827] rounded-xl cursor-pointer"
                       >
                         <RefreshCw size={14} />
@@ -600,44 +618,14 @@ export default function UploadResumePage() {
               {/* Body */}
               <div className="p-6 overflow-y-auto flex-1 bg-[#F8FAFC]">
                 <div className="bg-white border border-[#E5E7EB] rounded-xl p-8 shadow-sm flex flex-col gap-6">
-                  {/* Name section */}
                   <div>
-                    <h2 className="text-xl font-extrabold text-[#111827]">Alex Mercer</h2>
-                    <p className="text-xs text-[#6B7280] mt-1">Product Designer • alex.mercer@example.com • London, UK</p>
+                    <h2 className="text-xl font-extrabold text-[#111827]">Raw Extracted Text</h2>
+                    <p className="text-xs text-[#6B7280] mt-1">This is exactly what the AI will see when analyzing your resume.</p>
                   </div>
                   <div className="border-t border-[#E5E7EB] pt-4">
-                    <h4 className="text-xs font-bold text-[#2563EB] uppercase tracking-wider">Professional Summary</h4>
-                    <p className="text-xs text-[#111827] mt-1.5 leading-relaxed">
-                      Creative and analytical Product Designer with 4+ years of experience leading projects from concept to final delivery. Adept at conducting user research, prototyping, and building responsive visual layouts.
-                    </p>
-                  </div>
-                  <div className="border-t border-[#E5E7EB] pt-4">
-                    <h4 className="text-xs font-bold text-[#2563EB] uppercase tracking-wider">Experience</h4>
-                    <div className="mt-2 space-y-3">
-                      <div>
-                        <div className="flex justify-between items-center text-xs font-bold text-[#111827]">
-                          <span>Senior Product Designer</span>
-                          <span>2022 - Present</span>
-                        </div>
-                        <p className="text-[10px] text-[#6B7280]">Design Studio, London</p>
-                        <p className="text-[11px] text-[#111827] mt-1">
-                          • Spearheaded redesign of mobile web app, increasing conversion rates by 18%.
-                        </p>
-                        <p className="text-[11px] text-[#111827]">
-                          • Mentored junior designers and established design systems for multi-platform products.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Highlight box */}
-                  <div className="bg-[#EFF6FF] border border-blue-100 rounded-lg p-3 flex items-start gap-2.5 text-xs text-[#2563EB] font-medium">
-                    <Sparkles size={16} className="text-[#F59E0B] shrink-0 mt-0.5" />
-                    <div>
-                      <p className="font-bold">AI Coach Tip:</p>
-                      <p className="text-[11px] text-[#6B7280] mt-0.5">
-                        Your leadership bullets are strong! We suggest adding quantitative impacts to your work at Apple Inc. to align exactly with ATS requirements.
-                      </p>
-                    </div>
+                    <pre className="text-xs text-[#111827] mt-1.5 leading-relaxed whitespace-pre-wrap font-mono bg-gray-50 p-4 rounded-lg border border-gray-100 max-h-[50vh] overflow-y-auto">
+                      {parsedText || 'No text extracted.'}
+                    </pre>
                   </div>
                 </div>
               </div>
