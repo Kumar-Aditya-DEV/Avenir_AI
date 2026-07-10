@@ -46,6 +46,40 @@ const registerLocal = async (req, res) => {
   }
 };
 
+const loginLocal = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please provide email and password' });
+    }
+
+    const user = await User.findOne({ email }).select('+password');
+
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const isMatch = await user.matchPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    res.status(200).json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      authProvider: user.authProvider,
+      token: generateToken(user._id),
+    });
+
+  } catch (error) {
+    console.error('Login Error:', error.message);
+    res.status(500).json({ message: 'Server error during login' });
+  }
+};
+
 const googleAuth = async (req, res) => {
   try {
     const { token } = req.body;
@@ -54,7 +88,6 @@ const googleAuth = async (req, res) => {
       return res.status(400).json({ message: 'Google token is required' });
     }
 
-    // Verify token with Google
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -63,18 +96,15 @@ const googleAuth = async (req, res) => {
     const payload = ticket.getPayload();
     const { email, name, sub: googleId } = payload;
 
-    // Check if user exists
     let user = await User.findOne({ email });
 
     if (user) {
-      // Link Google ID if they previously registered via email
       if (!user.providerId && user.authProvider === 'local') {
         user.providerId = googleId;
         user.isEmailVerified = true;
         await user.save();
       }
     } else {
-      // Create new user via Google
       user = await User.create({
         name,
         email,
@@ -100,5 +130,6 @@ const googleAuth = async (req, res) => {
 
 module.exports = {
   registerLocal,
+  loginLocal,
   googleAuth,
 };
