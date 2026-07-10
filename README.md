@@ -1,6 +1,6 @@
-# Avenir — AI Resume Gap Analyzer & Mock Interview Coach
+# Avenir AI — AI Resume Gap Analyzer & Mock Interview Coach
 
-Upload your resume and a job description, discover your skill gaps, generate a personalized preparation roadmap, and practice with AI-powered mock interviews tailored to your target role.
+AI-powered Resume Gap Analyzer & Mock Interview Coach that helps students and job seekers identify skill gaps, generate personalized preparation plans, and practice targeted interviews for specific roles.
 
 ---
 
@@ -12,100 +12,91 @@ Avenir helps students and job seekers prepare for specific roles by generating p
 
 ## Overview
 
-Every job seeker faces the same challenge: they have a resume, they find a job posting, and they don't know exactly how far apart the two are—or what to study before the interview.
+Preparing for interviews often involves navigating generic resources that may not align with a candidate's target role.
 
-Avenir closes that gap automatically.
+Avenir solves this problem by comparing a user's resume against a job description, identifying missing skills and experience, generating a personalized preparation roadmap, and conducting AI-powered mock interviews tailored to those gaps.
 
-Users can upload a resume and provide a job description, receive a detailed gap analysis, generate a personalized preparation roadmap, and practice with AI-powered mock interviews tailored to the skills they are missing.
-
-The entire pipeline runs on local AI models through Ollama, enabling fully offline AI inference without relying on paid cloud APIs. Built using the MERN stack, Avenir provides personalized interview preparation while keeping user data private and under the user's control.
+The platform uses local AI models through Ollama, ensuring privacy, offline capability, and no dependency on paid AI APIs.
 
 ---
 
-## Key Features
+## Features
 
-### Resume & Job Description Analysis
-- Upload resumes in PDF format
-- Paste job descriptions directly
-- Provide job posting URLs with manual text fallback support
-- Extract and analyze structured information
+### Authentication & Account Management
+- Email & Password Authentication
+- Google OAuth Login
+- Email Verification
+- Password Recovery & Reset
+- Secure Session Management
 
-### Intelligent Gap Analysis
-- Identify missing skills and technologies
-- Detect experience gaps
-- Highlight role-specific requirements
-- Prioritize gaps by importance
+### Dashboard
+- ATS Score Overview
+- Resume Status Tracking
+- Recent Analyses
+- Interview Progress
+- Quick Actions
 
-### Personalized Preparation Plan
-- Generate role-focused study roadmaps
-- Prioritized learning recommendations
-- Downloadable PDF preparation reports
-- Actionable improvement suggestions
+### Resume Management
+- PDF Resume Upload
+- Resume Preview
+- Resume Suggestions
+- Resume Version History
 
-### AI-Powered Mock Interviews
-- Skill-specific interview sessions
-- Dynamic follow-up questions
-- Real-time answer evaluation
-- Personalized feedback and improvement suggestions
-- Interview performance summaries
+### Job Description Analysis
+- Paste Job Description
+- Upload Job Description
+- Job URL Processing
+- Keyword Extraction
+- Skill Requirement Detection
 
-### Privacy & Reliability
-- Runs completely on local AI models
-- No paid API dependency
-- Offline-capable architecture
-- User data remains on the user's machine
-- No fabricated skills or experience recommendations
+### AI Gap Analysis
+- ATS Compatibility Score
+- Skill Match Evaluation
+- Missing Skills Detection
+- Missing Experience Analysis
+- Strength & Weakness Identification
+
+### Personalized Preparation Plans
+- Priority-Based Learning Roadmaps
+- Topic Recommendations
+- Estimated Study Time
+- Downloadable PDF Reports
+
+### AI Mock Interviews
+- Domain-Based Interviews
+- Difficulty Selection
+- Voice & Text Modes
+- Dynamic Follow-Up Questions
+- AI Feedback & Evaluation
+
+### History Tracking
+- Previous Gap Reports
+- Interview Sessions
+- Preparation Plans
+- Resume Versions
+
+### Profile & Settings
+- Profile Management
+- Skills Overview
+- Privacy Controls
+- Dark Mode Support
+- Account Preferences
+
+### Downloads
+- Gap Analysis Reports
+- Preparation Plans
+- Interview Summaries
+- Resume Exports
 
 ---
 
-## Architecture
+## Public Pages
 
-```text
-┌─────────────────────────────────────────────┐
-│                React Frontend               │
-│           React + Vite + Tailwind           │
-└───────────────────┬─────────────────────────┘
-                    │ HTTP
-                    ▼
-┌─────────────────────────────────────────────┐
-│             Express Backend                 │
-│ Resume Parsing • Gap Analysis • Interviews  │
-└───────────────────┬─────────────────────────┘
-                    │
-                    ▼
-┌─────────────────────────────────────────────┐
-│                  Ollama                     │
-│                Llama 3.2                    │
-└───────────────────┬─────────────────────────┘
-                    │
-          ┌─────────┴─────────┐
-          ▼                   ▼
-      MongoDB        Whisper (Optional)
-```
-
-### Application Flow
-
-```text
-Resume Upload
-      │
-      ▼
-Resume Parsing
-      │
-      ▼
-Job Description Analysis
-      │
-      ▼
-Gap Identification
-      │
-      ▼
-Prep Plan Generation
-      │
-      ▼
-Mock Interview
-      │
-      ▼
-Feedback & Improvement Report
-```
+- Landing Page
+- About
+- Contact
+- Privacy Policy
+- Terms & Conditions
 
 ---
 
@@ -115,25 +106,81 @@ Feedback & Improvement Report
 - React
 - Vite
 - Tailwind CSS
+- React Router
 - Axios
 
 ### Backend
 - Node.js
 - Express.js
+- JWT Authentication
 - Multer
 - PDF-Parse
 - PDFKit
-- Axios
 - Cheerio
-
-### AI & NLP
-- Ollama
-- Llama 3.2
-- Whisper (Optional)
 
 ### Database
 - MongoDB
 - Mongoose
+
+### AI Layer
+- Ollama
+- Llama 3.2
+- Whisper (Optional)
+
+### Authentication
+- JWT
+- Google OAuth 2.0
+- Email Verification
+
+---
+
+## Architecture
+
+```text
+┌──────────────────────────────────────────────┐
+│               React Frontend                 │
+│          React + Vite + Tailwind             │
+└─────────────────┬────────────────────────────┘
+                  │
+                  ▼
+┌──────────────────────────────────────────────┐
+│              Express Backend                 │
+│ Authentication • Analysis • Interviews       │
+└─────────────────┬────────────────────────────┘
+                  │
+      ┌───────────┼───────────┐
+      ▼                       ▼
+┌─────────────┐      ┌─────────────────┐
+│  MongoDB    │      │     Ollama      │
+│ Persistence │      │    Llama 3.2    │
+└─────────────┘      └─────────────────┘
+```
+
+---
+
+## System Workflow
+
+```text
+User Login
+    ↓
+Upload Resume
+    ↓
+Provide Job Description
+    ↓
+Resume & JD Parsing
+    ↓
+Gap Analysis
+    ↓
+ATS Score Generation
+    ↓
+Preparation Roadmap
+    ↓
+AI Mock Interview
+    ↓
+Feedback & Evaluation
+    ↓
+Progress Tracking
+```
 
 ---
 
@@ -144,11 +191,31 @@ avenir/
 │
 ├── client/
 │   ├── src/
+│   │   ├── assets/
 │   │   ├── components/
+│   │   ├── layouts/
 │   │   ├── pages/
+│   │   │   ├── Landing/
+│   │   │   ├── About/
+│   │   │   ├── Contact/
+│   │   │   ├── Login/
+│   │   │   ├── Signup/
+│   │   │   ├── Dashboard/
+│   │   │   ├── Resume/
+│   │   │   ├── JobDescription/
+│   │   │   ├── Analysis/
+│   │   │   ├── PrepPlan/
+│   │   │   ├── Interview/
+│   │   │   ├── History/
+│   │   │   ├── Profile/
+│   │   │   ├── Settings/
+│   │   │   └── Downloads/
+│   │   │
 │   │   ├── hooks/
 │   │   ├── services/
 │   │   ├── utils/
+│   │   ├── routes/
+│   │   ├── context/
 │   │   └── App.jsx
 │   │
 │   └── package.json
@@ -165,7 +232,9 @@ avenir/
 │   │   │   ├── resumeParser.js
 │   │   │   ├── gapAnalyzer.js
 │   │   │   ├── prepPlanGenerator.js
-│   │   │   └── interviewService.js
+│   │   │   ├── interviewService.js
+│   │   │   ├── atsScorer.js
+│   │   │   └── pdfGenerator.js
 │   │   │
 │   │   ├── utils/
 │   │   ├── validators/
@@ -178,36 +247,25 @@ avenir/
 │   └── package.json
 │
 ├── docs/
+├── LICENSE
 ├── README.md
 └── package.json
 ```
 
 ---
 
-## Prerequisites
-
-Before running the project locally, ensure the following are installed:
-
-- Node.js 18+
-- MongoDB
-- Ollama
-- Git
+## Ollama Setup
 
 ### Recommended Hardware
-
 - 8 GB RAM minimum
 - 16 GB RAM recommended
 - 5 GB free disk space
-
----
-
-## Ollama Setup
 
 Install Ollama:
 
 https://ollama.com
 
-Download the default model:
+Pull the default model:
 
 ```bash
 ollama pull llama3.2
@@ -219,17 +277,37 @@ Verify installation:
 ollama list
 ```
 
-Expected output:
+Expected Output:
 
 ```bash
-NAME              ID              SIZE
-llama3.2:latest   xxxxxxxxxxxx    2.0 GB
+llama3.2:latest
 ```
 
-The backend communicates with Ollama via:
+Default Endpoint:
 
 ```text
 http://localhost:11434
+```
+
+---
+
+## Environment Variables
+
+```env
+PORT=5000
+
+MONGO_URI=mongodb://localhost:27017/avenir
+
+JWT_SECRET=your_jwt_secret
+
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama3.2
+
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+EMAIL_SERVICE_KEY=
+CLIENT_URL=http://localhost:5173
 ```
 
 ---
@@ -243,158 +321,51 @@ git clone <repository-url>
 cd avenir
 ```
 
-### Install Frontend Dependencies
+### Install Dependencies
+
+Frontend:
 
 ```bash
 cd client
 npm install
 ```
 
-### Install Backend Dependencies
+Backend:
 
 ```bash
 cd ../server
 npm install
 ```
 
-### Configure Environment Variables
+### Start Development Servers
 
-Create a `.env` file inside the server directory:
-
-```env
-PORT=5000
-
-MONGO_URI=mongodb://localhost:27017/avenir
-
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2
-
-JWT_SECRET=your_secret_key
-```
-
----
-
-## Running the Application
-
-### Start MongoDB
-
-```bash
-mongod
-```
-
-### Start Backend
+Start Backend:
 
 ```bash
 cd server
 npm run dev
 ```
 
-### Start Frontend
+Start Frontend:
 
 ```bash
 cd client
 npm run dev
 ```
 
-Frontend:
-
-```text
-http://localhost:5173
-```
-
-Backend:
-
-```text
-http://localhost:5000
-```
-
 ---
 
-## API Endpoints
+## Sample User Journey
 
-### Resume Processing
-
-```http
-POST /api/resume/upload
-```
-
-Upload and extract resume content.
-
----
-
-### Job Description Analysis
-
-```http
-POST /api/job/analyze
-```
-
-Analyze job descriptions and identify requirements.
-
----
-
-### Gap Analysis
-
-```http
-POST /api/gap/analyze
-```
-
-Generate personalized skill-gap reports.
-
----
-
-### Preparation Plan
-
-```http
-POST /api/prep/generate
-```
-
-Generate study roadmap and recommendations.
-
----
-
-### Mock Interview
-
-```http
-POST /api/interview/start
-POST /api/interview/respond
-POST /api/interview/end
-```
-
-Conduct AI-powered interview sessions.
-
----
-
-## Sample Workflow
-
-1. Upload Resume (PDF)
-2. Paste Job Description or Job URL
-3. AI extracts and analyzes content
-4. Gap analysis identifies missing skills
-5. Personalized preparation roadmap generated
-6. User selects a skill to practice
-7. AI conducts a mock interview
-8. AI provides targeted feedback
-9. Performance summary generated
-
----
-
-## Design Principles
-
-### No Fabricated Experience
-
-The system never invents skills, projects, certifications, or experience not present in the user's resume.
-
-### Transparent AI Feedback
-
-All interview feedback and recommendations are clearly labeled as AI-generated guidance.
-
-### Graceful Failure Handling
-
-If job posting URLs cannot be parsed, users can directly paste the job description.
-
-### Offline First
-
-Avenir is designed to work using local models through Ollama without requiring paid AI APIs.
+1. Create an account or sign in
+2. Upload a resume
+3. Paste a job description or provide a job URL
+4. Generate ATS and skill-gap analysis
+5. Review strengths and missing skills
+6. Generate a personalized preparation roadmap
+7. Practice AI-powered mock interviews
+8. Receive detailed interview feedback
+9. Track progress through dashboard and history
 
 ---
 
@@ -405,7 +376,6 @@ Avenir is designed to work using local models through Ollama without requiring p
 **Docker Fundamentals**
 
 Demonstrates:
-
 - Interview question generation
 - Context-aware follow-up questions
 - Response evaluation
@@ -416,35 +386,27 @@ The architecture supports extending this workflow to any identified gap skill.
 
 ---
 
+## Privacy First
+
+- Local AI inference through Ollama
+- No paid AI API dependency
+- User data remains under user control
+- Offline-capable architecture
+- Never invents skills, projects, certifications, or experience not present in the user's resume.
+
+---
+
 ## Future Enhancements
 
-- Multiple interview skill tracks
-- Voice-based interviews
-- ATS compatibility scoring
+- Voice-only interview mode
 - Learning resource recommendations
-- Interview analytics dashboard
-- Progress tracking
-- Resume optimization suggestions
+- Advanced ATS optimization
 - Multi-model support (Qwen, Mistral, Phi)
+- Analytics Dashboard
+- Team & Recruiter Mode
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
-
----
-
-## Team
-
-### Resume & JD Parsing
-Responsible for PDF extraction and job description processing.
-
-### Gap Analysis & Prep Plan
-Responsible for skill-gap identification and roadmap generation.
-
-### Mock Interview Agent
-Responsible for interview flow, feedback generation, and evaluation.
-
-### Application & AI Integration
-Responsible for MERN architecture, Ollama integration, database management, and deployment.
+Licensed under the MIT License.
