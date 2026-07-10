@@ -54,6 +54,7 @@ export default function DashboardPage({ onNavigate }) {
   const [darkMode, setDarkMode] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [settingsTab, setSettingsTab] = useState('general');
 
   // Resume upload states
   const [hasResume, setHasResume] = useState(() => localStorage.getItem('avenir_has_resume') === 'true');
@@ -147,8 +148,10 @@ export default function DashboardPage({ onNavigate }) {
         setActiveNav={setActiveNav} 
         darkMode={darkMode} 
         setDarkMode={setDarkMode} 
-        onNavigate={onNavigate} 
+        onNavigate={onNavigate}
+        onDashboardNav={(nav, tab) => { setActiveNav(nav); if (tab) setSettingsTab(tab); }}
       />
+      
       {/* RIGHT AREA */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
@@ -166,9 +169,7 @@ export default function DashboardPage({ onNavigate }) {
             ) : activeNav === 'interview' ? (
               <MockInterviewPage />
             ) : activeNav === 'settings' ? (
-              <SettingsPage initialTab="general" />
-            ) : activeNav === 'profile' ? (
-              <SettingsPage initialTab="profile" />
+              <SettingsPage initialTab={settingsTab} />
             ) : activeNav === 'history' ? (
               <HistoryPage />
             ) : (
