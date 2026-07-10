@@ -17,20 +17,18 @@ export default function ProfileDropdown({ onNavigate, onDashboardNav }) {
 
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen(p => !p)} id="profile-btn" className="flex items-center gap-2.5 cursor-pointer">
-        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md select-none"
+      <button onClick={() => setOpen(p => !p)} id="profile-btn" className="flex items-center gap-3 w-full p-2 rounded-xl hover:bg-[#F3F4F6] transition-colors cursor-pointer text-left">
+        <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-md select-none shrink-0"
           style={{ background: 'linear-gradient(135deg,#2563EB,#7C3AED)' }}>AM</div>
-        <div className="hidden lg:block text-left">
-          <p className="text-sm font-bold text-[#111827] leading-tight">Alex Mercer</p>
-  
+        <div className="text-left flex-1 min-w-0">
+          <p className="text-sm font-bold text-[#111827] leading-tight truncate">Alex Mercer</p>
         </div>
       </button>
       <AnimatePresence>
         {open && (
-
-          <motion.div initial={{ opacity: 0, scale: 0.95, y: -6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: -6 }} transition={{ duration: 0.16 }}
-            className="absolute right-0 top-12 z-50 w-48 bg-white/95 backdrop-blur-xl border border-[#E5E7EB] rounded-xl shadow-2xl overflow-hidden">
+          <motion.div initial={{ opacity: 0, scale: 0.95, y: 6 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 6 }} transition={{ duration: 0.16 }}
+            className="absolute left-0 bottom-full mb-2 z-50 w-48 bg-white/95 backdrop-blur-xl border border-[#E5E7EB] rounded-xl shadow-2xl overflow-hidden">
             {menuItems.map(({ label, action }) => (
               <button key={label} onClick={() => { action(); setOpen(false); }}
                 className="w-full text-left px-4 py-2.5 text-xs font-medium text-[#111827] hover:bg-[#F8FAFC] transition-colors cursor-pointer">{label}</button>

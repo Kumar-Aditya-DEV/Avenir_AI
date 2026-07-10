@@ -7,6 +7,7 @@ const SETTINGS_KEY = 'avenir_general_settings';
 
 const defaultSettings = {
   compactMode: false,
+  theme: 'light',
   language: 'English (US)',
   timezone: '(GMT+5:30) India Standard Time',
   emailNotifications: true,
@@ -19,14 +20,18 @@ const defaultSettings = {
 function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    return raw ? { ...defaultSettings, ...JSON.parse(raw) } : { ...defaultSettings };
+    const parsed = raw ? JSON.parse(raw) : {};
+    const theme = localStorage.getItem('avenir_theme') || 'light';
+    return { ...defaultSettings, ...parsed, theme };
   } catch {
-    return { ...defaultSettings };
+    return { ...defaultSettings, theme: localStorage.getItem('avenir_theme') || 'light' };
   }
 }
 
 function saveSettings(settings) {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  localStorage.setItem('avenir_theme', settings.theme);
+  document.documentElement.classList.toggle('dark', settings.theme === 'dark');
 }
 
 /* ─── Toggle Switch Component ─── */
@@ -442,6 +447,26 @@ const SettingsPage = ({ initialTab = 'profile' }) => {
                 </div>
 
                 <div className="space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-[#111827]">Theme</p>
+                      <p className="text-xs text-[#6B7280] mt-0.5">Choose between light and dark mode.</p>
+                    </div>
+                    <div className="relative">
+                      <select
+                        value={settings.theme}
+                        onChange={(e) => updateSetting('theme', e.target.value)}
+                        className="px-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] text-[#111827] text-sm font-medium appearance-none pr-9 focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB] outline-none transition-all cursor-pointer"
+                      >
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <hr className="border-[#F3F4F6]" />
+
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-semibold text-[#111827]">Compact Mode</p>
