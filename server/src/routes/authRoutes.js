@@ -1,8 +1,9 @@
 const express = require('express');
-const { registerLocal } = require('../controllers/authController');
+const { registerLocal, googleAuth } = require('../controllers/authController');
 
 const router = express.Router();
 
 router.post('/register', registerLocal);
+router.post('/google', googleAuth);
 
 module.exports = router;
