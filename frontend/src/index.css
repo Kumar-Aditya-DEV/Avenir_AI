@@ -171,3 +171,12 @@ body {
 .dark .shadow-2xl {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4) !important;
 }
+
+/* ─── Hide Scrollbars Globally ─── */
+::-webkit-scrollbar {
+  display: none !important;
+}
+* {
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important; /* IE and Edge */
+}
