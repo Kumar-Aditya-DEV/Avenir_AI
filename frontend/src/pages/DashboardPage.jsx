@@ -246,9 +246,9 @@ export default function DashboardPage({ onNavigate }) {
         <main id="dash-scroll" className="flex-1 overflow-y-auto px-5 lg:px-10 py-8">
           <motion.div variants={containerVar} initial="hidden" animate="visible" className="max-w-[1400px] mx-auto">
             {activeNav === 'upload' ? (
-              <UploadResumePage />
+              <UploadResumePage onNext={() => setActiveNav('job')} />
             ) : activeNav === 'job' ? (
-              <JobDescriptionPage />
+              <JobDescriptionPage onNext={() => setActiveNav('gap')} />
             ) : activeNav === 'gap' ? (
               <GapAnalysisPage />
             ) : activeNav === 'prep' ? (
