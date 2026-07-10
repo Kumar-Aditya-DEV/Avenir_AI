@@ -47,18 +47,16 @@ const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 function AnimatedCounter({ target, suffix = '', duration = 1.2 }) {
   const motionVal = useMotionValue(0);
   const [display, setDisplay] = useState(0);
-  const started = useRef(false);
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
     const ctrl = animate(motionVal, target, {
       duration, ease: 'easeOut',
       onUpdate: (v) => setDisplay(Math.round(v)),
     });
     return ctrl.stop;
-  }, []);
+  }, [target]);
   return <span>{display}{suffix}</span>;
 }
+
 
 /* ─── Circular Progress ─── */
 function CircularProgress({ percentage = 70, size = 140, strokeWidth = 10 }) {
@@ -238,6 +236,66 @@ export default function DashboardPage({ onNavigate }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  // Resume upload states
+  const [hasResume, setHasResume] = useState(() => localStorage.getItem('avenir_has_resume') === 'true');
+  const [resumeName, setResumeName] = useState(() => localStorage.getItem('avenir_resume_name') || '');
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [statusText, setStatusText] = useState('Parsing document structure...');
+  const fileInputRef = useRef(null);
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    simulateAnalysis(file.name);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    simulateAnalysis(file.name);
+  };
+
+  const simulateAnalysis = (name) => {
+    setUploading(true);
+    setUploadProgress(0);
+    setStatusText('Reading file bytes...');
+    
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress += 5;
+      if (progress <= 100) {
+        setUploadProgress(progress);
+        if (progress === 20) setStatusText('Parsing resume layout and blocks...');
+        if (progress === 50) setStatusText('Extracting technical skill nodes...');
+        if (progress === 80) setStatusText('Checking compliance against standard ATS parsers...');
+        if (progress === 100) setStatusText('Finalizing career profile analysis!');
+      } else {
+        clearInterval(interval);
+        setTimeout(() => {
+          setHasResume(true);
+          setResumeName(name);
+          localStorage.setItem('avenir_has_resume', 'true');
+          localStorage.setItem('avenir_resume_name', name);
+          setUploading(false);
+        }, 300);
+      }
+    }, 80);
+  };
+
+  const handleReset = () => {
+    setHasResume(false);
+    setResumeName('');
+    localStorage.removeItem('avenir_has_resume');
+    localStorage.removeItem('avenir_resume_name');
+  };
+
+
   useEffect(() => {
     const el = document.getElementById('dash-scroll');
     if (!el) return;
@@ -273,7 +331,7 @@ export default function DashboardPage({ onNavigate }) {
               <LayoutDashboard size={15} className="text-white" />
             </div>
             <div>
-              <p className="text-base font-extrabold text-[#2563EB] leading-tight">ResumeAI</p>
+              <p className="text-base font-extrabold text-[#2563EB] leading-tight">Avenir AI</p>
               <p className="text-[10px] font-medium text-[#6B7280]">Enterprise Tier</p>
             </div>
           </div>
@@ -364,17 +422,88 @@ export default function DashboardPage({ onNavigate }) {
               </motion.p>
             </motion.div>
 
+            {/* ONBOARDING HIGHLIGHT BANNER */}
+            <AnimatePresence>
+              {!hasResume && (
+                <motion.div
+                  initial={{ opacity: 0, y: -20, scale: 0.98 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -20, scale: 0.98 }}
+                  transition={{ duration: 0.4 }}
+                  className="mb-8 p-6 md:p-8 rounded-2xl bg-white border-2 border-dashed border-[#2563EB] shadow-[0_15px_40px_rgba(37,99,235,0.08)] relative overflow-hidden flex flex-col items-center justify-center text-center group cursor-pointer"
+                  onDragOver={handleDragOver}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {/* Heartbeat glowing overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#2563EB]/5 to-[#7C3AED]/5 animate-pulse pointer-events-none" />
+
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept=".pdf,.doc,.docx,.txt"
+                    onChange={handleFileUpload}
+                  />
+
+                  {uploading ? (
+                    <div className="w-full max-w-md py-4 flex flex-col items-center relative z-10">
+                      <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center mb-4 text-[#2563EB] animate-spin">
+                        <CloudUpload size={24} />
+                      </div>
+                      <h3 className="text-base font-bold text-[#111827] mb-1">Analyzing Your Resume</h3>
+                      <p className="text-xs text-[#6B7280] font-semibold mb-4">{statusText}</p>
+                      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden flex">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#2563EB] to-[#7C3AED] transition-all duration-150"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs font-bold text-[#2563EB] mt-2">{uploadProgress}%</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center relative z-10">
+                      {/* Animated Cloud Icon */}
+                      <motion.div
+                        animate={{ y: [0, -6, 0] }}
+                        transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                        className="w-16 h-16 rounded-2xl bg-[#EFF6FF] border border-[#2563EB]/10 flex items-center justify-center text-[#2563EB] mb-4 shadow-sm group-hover:scale-105 transition-transform"
+                      >
+                        <CloudUpload size={32} />
+                      </motion.div>
+
+                      <h2 className="text-xl font-bold text-[#111827] mb-2">
+                        Upload Your Resume to Get Started
+                      </h2>
+                      <p className="text-xs md:text-sm text-[#6B7280] font-medium max-w-lg leading-relaxed mb-5">
+                        Drag and drop your PDF or DOCX file here, or click to browse. We will analyze your experience, identify critical skill gaps, and prepare tailored mock interview questions.
+                      </p>
+
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#2563EB] to-[#7C3AED] text-white text-xs font-bold rounded-xl shadow-md group-hover:shadow-lg transition-all duration-200">
+                        <span>Select File</span>
+                        <ArrowRight size={13} />
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* 2. STAT CARDS */}
             <motion.div variants={itemVar} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               {/* Match Score */}
               <motion.div whileHover={cardHover} className="bg-white rounded-2xl p-5 shadow-[0_10px_30px_rgba(15,23,42,0.08)] relative overflow-hidden cursor-default">
                 <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[10px] font-bold text-white"
-                  style={{ background: 'linear-gradient(135deg,#10B981,#059669)' }}>+4%</div>
+                  style={{ background: hasResume ? 'linear-gradient(135deg,#10B981,#059669)' : '#9CA3AF' }}>
+                  {hasResume ? '+4%' : 'Pending'}
+                </div>
                 <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] flex items-center justify-center mb-3">
                   <TrendingUp size={20} className="text-[#2563EB]" />
                 </div>
                 <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest mb-1">Match Score</p>
-                <p className="text-3xl font-extrabold text-[#111827]"><AnimatedCounter target={78} suffix="%" /></p>
+                <p className="text-3xl font-extrabold text-[#111827]">
+                  <AnimatedCounter target={hasResume ? 78 : 0} suffix="%" />
+                </p>
               </motion.div>
 
               {/* Missing Skills */}
@@ -384,7 +513,8 @@ export default function DashboardPage({ onNavigate }) {
                 </div>
                 <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest mb-1">Missing Skills</p>
                 <p className="text-3xl font-extrabold text-[#111827] flex items-baseline gap-1">
-                  <AnimatedCounter target={5} /><span className="text-xl text-[#EF4444]">!</span>
+                  <AnimatedCounter target={hasResume ? 5 : 0} />
+                  {hasResume && <span className="text-xl text-[#EF4444]">!</span>}
                 </p>
               </motion.div>
 
@@ -394,10 +524,10 @@ export default function DashboardPage({ onNavigate }) {
                   <ShieldCheck size={20} className="text-[#7C3AED]" />
                 </div>
                 <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest mb-1">Readiness</p>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9, duration: 0.5 }}
-                  className="text-3xl font-extrabold text-[#111827] flex items-center gap-2">
-                  High<span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block" />
-                </motion.p>
+                <p className="text-3xl font-extrabold text-[#111827] flex items-center gap-2">
+                  {hasResume ? 'High' : 'N/A'}
+                  {hasResume && <span className="w-2.5 h-2.5 rounded-full bg-[#10B981] inline-block" />}
+                </p>
               </motion.div>
 
               {/* Analyzed */}
@@ -406,7 +536,9 @@ export default function DashboardPage({ onNavigate }) {
                   <Clock size={20} className="text-[#2563EB]" />
                 </div>
                 <p className="text-[10px] font-bold text-[#6B7280] uppercase tracking-widest mb-1">Analyzed</p>
-                <p className="text-3xl font-extrabold text-[#111827]"><AnimatedCounter target={12} /></p>
+                <p className="text-3xl font-extrabold text-[#111827]">
+                  <AnimatedCounter target={hasResume ? 12 : 0} />
+                </p>
               </motion.div>
             </motion.div>
 
@@ -420,36 +552,47 @@ export default function DashboardPage({ onNavigate }) {
                 <motion.div variants={itemVar} className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6">
                   <div className="flex items-center justify-between mb-5">
                     <h2 className="text-base font-bold text-[#111827]">Recent Activity</h2>
-                    <motion.button whileHover={{ x: 3 }}
-                      className="flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline cursor-pointer">
-                      View Full History<ArrowRight size={13} />
-                    </motion.button>
+                    {hasResume && (
+                      <motion.button whileHover={{ x: 3 }}
+                        className="flex items-center gap-1 text-xs font-bold text-[#2563EB] hover:underline cursor-pointer">
+                        View Full History<ArrowRight size={13} />
+                      </motion.button>
+                    )}
                   </div>
                   <motion.div variants={containerVar} initial="hidden" animate="visible" className="space-y-4">
-                    <motion.div variants={itemVar} className="flex items-start gap-3.5 pb-4 border-b border-[#F3F4F6]">
-                      <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center shrink-0"><FileText size={17} className="text-[#2563EB]" /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#111827] truncate">Analyzed "Senior Product Designer_v2.pdf"</p>
-                        <p className="text-xs text-[#6B7280] mt-0.5">Applied to: Apple Inc. • 2 hours ago</p>
+                    {hasResume ? (
+                      <>
+                        <motion.div variants={itemVar} className="flex items-start gap-3.5 pb-4 border-b border-[#F3F4F6]">
+                          <div className="w-9 h-9 rounded-xl bg-[#EFF6FF] flex items-center justify-center shrink-0"><FileText size={17} className="text-[#2563EB]" /></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-[#111827] truncate">Analyzed "{resumeName}"</p>
+                            <p className="text-xs text-[#6B7280] mt-0.5">Applied to: Apple Inc. • Just now</p>
+                          </div>
+                          <span className="text-sm font-bold text-[#2563EB] shrink-0">82% Match</span>
+                        </motion.div>
+                        <motion.div variants={itemVar} className="flex items-start gap-3.5 pb-4 border-b border-[#F3F4F6]">
+                          <div className="w-9 h-9 rounded-xl bg-[#F5F3FF] flex items-center justify-center shrink-0"><Mic size={17} className="text-[#7C3AED]" /></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-[#111827]">Completed Mock Interview session</p>
+                            <p className="text-xs text-[#6B7280] mt-0.5">Topic: Behavioral Questions • Yesterday</p>
+                          </div>
+                          <span className="text-sm font-bold text-[#7C3AED] shrink-0">9/10 Score</span>
+                        </motion.div>
+                        <motion.div variants={itemVar} className="flex items-start gap-3.5">
+                          <div className="w-9 h-9 rounded-xl bg-[#F3F4F6] flex items-center justify-center shrink-0"><Edit size={17} className="text-[#6B7280]" /></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-[#111827]">Updated Resume Bullet Points</p>
+                            <p className="text-xs text-[#6B7280] mt-0.5">Focus: Leadership Skills • 2 days ago</p>
+                          </div>
+                          <KebabMenu />
+                        </motion.div>
+                      </>
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-sm text-[#6B7280] font-medium">No activity recorded yet.</p>
+                        <p className="text-xs text-[#9CA3AF] mt-1">Upload your resume to perform your first gap analysis.</p>
                       </div>
-                      <span className="text-sm font-bold text-[#2563EB] shrink-0">82% Match</span>
-                    </motion.div>
-                    <motion.div variants={itemVar} className="flex items-start gap-3.5 pb-4 border-b border-[#F3F4F6]">
-                      <div className="w-9 h-9 rounded-xl bg-[#F5F3FF] flex items-center justify-center shrink-0"><Mic size={17} className="text-[#7C3AED]" /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#111827]">Completed Mock Interview session</p>
-                        <p className="text-xs text-[#6B7280] mt-0.5">Topic: Behavioral Questions • Yesterday</p>
-                      </div>
-                      <span className="text-sm font-bold text-[#7C3AED] shrink-0">9/10 Score</span>
-                    </motion.div>
-                    <motion.div variants={itemVar} className="flex items-start gap-3.5">
-                      <div className="w-9 h-9 rounded-xl bg-[#F3F4F6] flex items-center justify-center shrink-0"><Edit size={17} className="text-[#6B7280]" /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-[#111827]">Updated Resume Bullet Points</p>
-                        <p className="text-xs text-[#6B7280] mt-0.5">Focus: Leadership Skills • 2 days ago</p>
-                      </div>
-                      <KebabMenu />
-                    </motion.div>
+                    )}
                   </motion.div>
                 </motion.div>
 
@@ -457,12 +600,25 @@ export default function DashboardPage({ onNavigate }) {
                 <motion.div variants={itemVar} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-5">
                     <div className="flex items-center gap-2 mb-3"><FileUp size={15} className="text-[#2563EB]" /><h3 className="text-sm font-bold text-[#111827]">Resume Status</h3></div>
-                    <p className="text-xs font-semibold text-[#111827] truncate">Senior_Product_Designer_v2.pdf</p>
-                    <p className="text-[10px] text-[#6B7280] mt-0.5">Uploaded: Jul 8, 2024</p>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#10B981] bg-[#ECFDF5]">● Processed</span>
-                      <button className="text-[11px] font-bold text-[#2563EB] hover:underline cursor-pointer">Re-upload</button>
-                    </div>
+                    {hasResume ? (
+                      <>
+                        <p className="text-xs font-semibold text-[#111827] truncate">{resumeName}</p>
+                        <p className="text-[10px] text-[#6B7280] mt-0.5">Uploaded: Just now</p>
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#10B981] bg-[#ECFDF5]">● Processed</span>
+                          <button onClick={handleReset} className="text-[11px] font-bold text-[#2563EB] hover:underline cursor-pointer">Reset</button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-semibold text-[#6B7280] truncate">No resume uploaded</p>
+                        <p className="text-[10px] text-[#9CA3AF] mt-0.5">Required to unlock analysis</p>
+                        <div className="flex items-center justify-between mt-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-red-500 bg-red-50">● Missing</span>
+                          <button onClick={() => fileInputRef.current?.click()} className="text-[11px] font-bold text-[#2563EB] hover:underline cursor-pointer">Upload</button>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-5">
                     <div className="flex items-center gap-2 mb-3"><Briefcase size={15} className="text-[#7C3AED]" /><h3 className="text-sm font-bold text-[#111827]">Job Description</h3></div>
@@ -495,11 +651,18 @@ export default function DashboardPage({ onNavigate }) {
                 </motion.div>
 
                 {/* Line Chart */}
-                <motion.div variants={itemVar} className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6">
+                <motion.div variants={itemVar} className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6 relative overflow-hidden">
+                  {!hasResume && (
+                    <div className="absolute inset-0 z-10 bg-white/75 backdrop-blur-[1.5px] flex flex-col items-center justify-center text-center p-4">
+                      <TrendingUp size={24} className="text-[#9CA3AF] mb-2" />
+                      <p className="text-sm font-bold text-[#111827]">Trend Chart Locked</p>
+                      <p className="text-[11px] text-[#6B7280] font-medium max-w-[200px] mt-1">Upload your resume to view match score trends over time.</p>
+                    </div>
+                  )}
                   <h2 className="text-base font-bold text-[#111827] mb-0.5">Progress Overview</h2>
                   <p className="text-xs text-[#6B7280] mb-5">Match score trend — last 30 days</p>
                   <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={lineData} margin={{ top: 5, right: 10, left: -22, bottom: 5 }}>
+                    <LineChart data={hasResume ? lineData : []} margin={{ top: 5, right: 10, left: -22, bottom: 5 }}>
                       <defs>
                         <linearGradient id="lineGradStroke" x1="0" y1="0" x2="1" y2="0">
                           <stop offset="0%" stopColor="#2563EB" /><stop offset="100%" stopColor="#7C3AED" />
@@ -510,19 +673,26 @@ export default function DashboardPage({ onNavigate }) {
                       <YAxis domain={[40, 100]} tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
                       <Tooltip content={<LineTooltip />} />
                       <Line type="monotone" dataKey="score" stroke="url(#lineGradStroke)" strokeWidth={3}
-                        dot={{ fill: '#2563EB', r: 4, strokeWidth: 2, stroke: '#fff' }}
-                        activeDot={{ r: 6, fill: '#7C3AED', stroke: '#fff', strokeWidth: 2 }}
-                        isAnimationActive animationDuration={1400} animationEasing="ease-out" />
+                         dot={{ fill: '#2563EB', r: 4, strokeWidth: 2, stroke: '#fff' }}
+                         activeDot={{ r: 6, fill: '#7C3AED', stroke: '#fff', strokeWidth: 2 }}
+                         isAnimationActive animationDuration={1400} animationEasing="ease-out" />
                     </LineChart>
                   </ResponsiveContainer>
                 </motion.div>
 
                 {/* Bar Chart */}
-                <motion.div variants={itemVar} className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6">
+                <motion.div variants={itemVar} className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6 relative overflow-hidden">
+                  {!hasResume && (
+                    <div className="absolute inset-0 z-10 bg-white/75 backdrop-blur-[1.5px] flex flex-col items-center justify-center text-center p-4">
+                      <BarChart2 size={24} className="text-[#9CA3AF] mb-2" />
+                      <p className="text-sm font-bold text-[#111827]">Skill Metrics Locked</p>
+                      <p className="text-[11px] text-[#6B7280] font-medium max-w-[200px] mt-1">Upload your resume to analyze your skill category strengths.</p>
+                    </div>
+                  )}
                   <h2 className="text-base font-bold text-[#111827] mb-0.5">Skill Improvement by Category</h2>
                   <p className="text-xs text-[#6B7280] mb-5">Performance score per skill area</p>
                   <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={barData} layout="vertical" margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                    <BarChart data={hasResume ? barData : []} layout="vertical" margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" horizontal={false} />
                       <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 10, fill: '#9CA3AF' }} tickLine={false} axisLine={false} />
                       <YAxis type="category" dataKey="category" width={115} tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }} tickLine={false} axisLine={false} />
@@ -540,9 +710,16 @@ export default function DashboardPage({ onNavigate }) {
 
                 {/* Career Goal */}
                 <motion.div variants={itemVar} whileHover={cardHover}
-                  className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6 flex flex-col items-center text-center">
+                  className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6 flex flex-col items-center text-center relative overflow-hidden">
+                  {!hasResume && (
+                    <div className="absolute inset-0 z-10 bg-white/75 backdrop-blur-[1.5px] flex flex-col items-center justify-center text-center p-4">
+                      <Briefcase size={24} className="text-[#9CA3AF] mb-2" />
+                      <p className="text-sm font-bold text-[#111827]">Readiness Locked</p>
+                      <p className="text-[11px] text-[#6B7280] font-medium max-w-[200px] mt-1">Upload your resume to calculate your career readiness score.</p>
+                    </div>
+                  )}
                   <h2 className="text-base font-bold text-[#111827] mb-5 self-start">Career Goal</h2>
-                  <CircularProgress percentage={70} />
+                  <CircularProgress percentage={hasResume ? 70 : 0} />
                   <p className="mt-4 text-sm text-[#6B7280] font-medium">Targeting: Senior AI Product Lead</p>
                 </motion.div>
 
@@ -557,6 +734,9 @@ export default function DashboardPage({ onNavigate }) {
                       { icon: Sparkles, label: 'AI Polish Current', iconColor: '#F59E0B', iconBg: '#FFFBEB' },
                     ].map(({ icon: Icon, label, iconColor, iconBg }) => (
                       <motion.button key={label}
+                        onClick={() => {
+                          if (label.includes('Upload')) fileInputRef.current?.click();
+                        }}
                         whileHover={{ y: -2, boxShadow: '0 8px 24px rgba(37,99,235,0.12)' }} whileTap={{ scale: 0.97 }}
                         className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm cursor-pointer group">
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: iconBg }}>
@@ -571,13 +751,19 @@ export default function DashboardPage({ onNavigate }) {
 
                 {/* Weekly Improvement sparkline */}
                 <motion.div variants={itemVar} whileHover={cardHover}
-                  className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-5">
+                  className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-5 relative overflow-hidden">
+                  {!hasResume && (
+                    <div className="absolute inset-0 z-10 bg-white/75 backdrop-blur-[1.5px] flex flex-col items-center justify-center text-center p-4">
+                      <Clock size={20} className="text-[#9CA3AF] mb-1" />
+                      <p className="text-xs font-bold text-[#111827]">Weekly Chart Locked</p>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-bold text-[#111827]">Weekly Improvement</h3>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#10B981] bg-[#ECFDF5]">+12%</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold text-[#10B981] bg-[#ECFDF5]">{hasResume ? '+12%' : '0%'}</span>
                   </div>
                   <div className="flex items-end gap-1 h-14">
-                    {SPARKLINE.map((v, i) => {
+                    {(hasResume ? SPARKLINE : [0, 0, 0, 0, 0, 0, 0]).map((v, i) => {
                       const h = (v / 100) * 56;
                       const isLast = i === SPARKLINE.length - 1;
                       return (
@@ -585,9 +771,9 @@ export default function DashboardPage({ onNavigate }) {
                           initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
                           style={{
                             height: h, originY: 1,
-                            background: isLast
+                            background: isLast && hasResume
                               ? 'linear-gradient(to top,#2563EB,#7C3AED)'
-                              : `rgba(37,99,235,${0.18 + i * 0.12})`
+                              : `rgba(37,99,235,${hasResume ? 0.18 + i * 0.12 : 0.05})`
                           }}
                           transition={{ delay: 0.5 + i * 0.07, duration: 0.45, ease: 'easeOut' }} />
                       );
@@ -639,8 +825,8 @@ export default function DashboardPage({ onNavigate }) {
             {/* FOOTER */}
             <footer className="border-t border-[#E5E7EB] pt-5 pb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
               <div>
-                <span className="text-sm font-extrabold text-[#2563EB]">ResumeAI Analyzer</span>
-                <p className="text-xs text-[#6B7280] mt-0.5">© 2024 ResumeAI Analyzer. All rights reserved.</p>
+                <span className="text-sm font-extrabold text-[#2563EB]">Avenir AI Analyzer</span>
+                <p className="text-xs text-[#6B7280] mt-0.5">© 2026 Avenir AI Analyzer. All rights reserved.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3 text-xs text-[#6B7280]">
                 {['Privacy Policy', 'Terms of Service', 'Support'].map((link, i) => (
