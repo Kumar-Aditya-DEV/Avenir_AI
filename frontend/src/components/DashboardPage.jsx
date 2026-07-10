@@ -11,6 +11,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar, Cell,
 } from 'recharts';
+import UploadResumePage from './UploadResumePage';
 
 /* ─── Mock Data ─── */
 const lineData = [
@@ -342,10 +343,10 @@ export default function DashboardPage({ onNavigate }) {
         {/* MAIN SCROLLABLE */}
         <main id="dash-scroll" className="flex-1 overflow-y-auto px-5 lg:px-10 py-8">
           <motion.div variants={containerVar} initial="hidden" animate="visible" className="max-w-[1400px] mx-auto">
-
-            {/* 1. WELCOME */}
-            <motion.div variants={itemVar} className="mb-8">
-              <h1 className="text-3xl lg:text-[2.2rem] font-extrabold text-[#111827] tracking-tight">
+            {activeNav === 'upload' ? <UploadResumePage /> : <>
+                {/* 1. WELCOME */}
+                <motion.div variants={itemVar} className="mb-8">
+                  <h1 className="text-3xl lg:text-[2.2rem] font-extrabold text-[#111827] tracking-tight">
                 Welcome back,{' '}
                 <motion.span initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.5 }}
                   style={{ background: 'linear-gradient(135deg,#2563EB,#7C3AED)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -651,7 +652,7 @@ export default function DashboardPage({ onNavigate }) {
                 ))}
               </div>
             </footer>
-
+          </>}
           </motion.div>
         </main>
       </div>
