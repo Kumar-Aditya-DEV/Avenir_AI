@@ -47,18 +47,45 @@ const PrepPlanPage = () => {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [duration, setDuration] = useState(5);
-  const analysisId = localStorage.getItem('avenir_analysis_id');
+  // We will store the active analysis ID in state rather than just local storage
+  const [activeAnalysisId, setActiveAnalysisId] = useState(localStorage.getItem('avenir_analysis_id'));
   const token = localStorage.getItem('token');
 
   useEffect(() => {
-    if (!analysisId || !token) {
-      setFetching(false);
-      return;
-    }
+    const initPage = async () => {
+      if (!token) {
+        setFetching(false);
+        return;
+      }
 
-    const fetchPlan = async () => {
+      let currentId = activeAnalysisId;
+
+      // If no ID is in local storage, fetch the latest analysis from history
+      if (!currentId) {
+        try {
+          const histRes = await fetch(`${import.meta.env.VITE_API_URL}/users/history`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (histRes.ok) {
+            const histData = await histRes.json();
+            if (histData.analyses && histData.analyses.length > 0) {
+              currentId = histData.analyses[0]._id;
+              setActiveAnalysisId(currentId);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch history:", e);
+        }
+      }
+
+      if (!currentId) {
+        setFetching(false);
+        return;
+      }
+
+      // Now fetch the prep plan for the currentId
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/prep/analysis/${analysisId}`, {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/prep/analysis/${currentId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -71,11 +98,12 @@ const PrepPlanPage = () => {
         setFetching(false);
       }
     };
-    fetchPlan();
-  }, [analysisId, token]);
+
+    initPage();
+  }, [token]);
 
   const generatePlan = async () => {
-    if (!analysisId || !token) return;
+    if (!activeAnalysisId || !token) return;
     setLoading(true);
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/prep/generate`, {
@@ -84,7 +112,7 @@ const PrepPlanPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ analysisId, duration: Number(duration) })
+        body: JSON.stringify({ analysisId: activeAnalysisId, duration: Number(duration) })
       });
       if (res.ok) {
         const data = await res.json();
@@ -108,7 +136,7 @@ const PrepPlanPage = () => {
     );
   }
 
-  if (!analysisId) {
+  if (!activeAnalysisId) {
     return (
       <div className="flex flex-col items-center justify-center h-64 text-center px-4">
         <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4 text-[#2563EB]">
