@@ -90,27 +90,47 @@ export default function DashboardPage({ onNavigate }) {
 
   // Real Data states
   const [analysisData, setAnalysisData] = useState(null);
+  const [dynamicSessions, setDynamicSessions] = useState([]);
 
   useEffect(() => {
-    const fetchAnalysis = async () => {
-      const analysisId = localStorage.getItem('avenir_analysis_id');
+    const fetchHistory = async () => {
       const token = localStorage.getItem('token');
-      if (hasResume && analysisId && token) {
+      if (token) {
         try {
-          const res = await fetch(`${import.meta.env.VITE_API_URL}/analysis/${analysisId}`, {
+          const res = await fetch(`${import.meta.env.VITE_API_URL}/users/history`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (res.ok) {
             const data = await res.json();
-            setAnalysisData(data);
+            
+            // If the user has analyses, pick the most recent one
+            if (data.analyses && data.analyses.length > 0) {
+              setAnalysisData(data.analyses[0]);
+              setHasResume(true);
+            }
+            
+            // If the user has uploaded resumes, update the name
+            if (data.versions && data.versions.length > 0) {
+              setHasResume(true);
+              setResumeName(data.versions[0].originalFileName || 'Resume.pdf');
+            }
+
+            // Save the sessions
+            if (data.sessions) {
+              setDynamicSessions(data.sessions.slice(0, 3));
+            }
           }
         } catch (err) {
-          console.error("Failed to fetch analysis:", err);
+          console.error("Failed to fetch dashboard history:", err);
         }
       }
     };
-    fetchAnalysis();
-  }, [hasResume]);
+    
+    // Always run when activeNav changes to dashboard so data is fresh
+    if (activeNav === 'dashboard') {
+      fetchHistory();
+    }
+  }, [activeNav]);
 
   const handleReset = () => {
     setHasResume(false);
@@ -377,18 +397,28 @@ export default function DashboardPage({ onNavigate }) {
                 <motion.div variants={itemVar} className="bg-white rounded-2xl shadow-[0_10px_30px_rgba(15,23,42,0.08)] p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-bold text-[#111827]">Interview History</h2>
-                    <button className="text-xs font-bold text-[#2563EB] hover:underline cursor-pointer">View All</button>
+                    <button onClick={() => setActiveNav('history')} className="text-xs font-bold text-[#2563EB] hover:underline cursor-pointer">View All</button>
                   </div>
                   <div className="divide-y divide-[#F3F4F6]">
-                    {interviewHistory.map((item, i) => (
-                      <div key={i} className="flex items-center justify-between py-2.5">
-                        <div>
-                          <p className="text-sm font-semibold text-[#111827]">{item.topic}</p>
-                          <p className="text-[11px] text-[#6B7280]">{item.date}</p>
+                    {dynamicSessions.length > 0 ? (
+                      dynamicSessions.map((item, i) => (
+                        <div key={item._id} className="flex items-center justify-between py-2.5">
+                          <div>
+                            <p className="text-sm font-semibold text-[#111827]">Mock Interview Session</p>
+                            <p className="text-[11px] text-[#6B7280]">
+                              {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </p>
+                          </div>
+                          <span className={`text-sm font-bold ${item.score >= 80 ? 'text-[#10B981]' : item.score >= 50 ? 'text-[#7C3AED]' : 'text-[#EF4444]'}`}>
+                            {item.score || 0}/100
+                          </span>
                         </div>
-                        <span className={`text-sm font-bold ${item.colorClass}`}>{item.score}</span>
+                      ))
+                    ) : (
+                      <div className="py-4 text-center">
+                        <p className="text-sm text-[#6B7280] font-medium">No mock interviews completed.</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </motion.div>
 
