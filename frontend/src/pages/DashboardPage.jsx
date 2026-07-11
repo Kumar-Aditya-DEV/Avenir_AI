@@ -225,7 +225,7 @@ export default function DashboardPage({ onNavigate }) {
             ) : activeNav === 'settings' ? (
               <SettingsPage initialTab={settingsTab} />
             ) : activeNav === 'history' ? (
-              <HistoryPage />
+              <HistoryPage onNavigate={setActiveNav} />
             ) : (
               <>
                 {/* 1. WELCOME */}

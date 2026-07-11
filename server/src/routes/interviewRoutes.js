@@ -4,6 +4,7 @@ const {
   submitAnswer,
   endInterview,
   getInterview,
+  deleteInterview,
 } = require('../controllers/interviewController');
 const { protect } = require('../middlewares/authMiddleware');
 
@@ -13,5 +14,6 @@ router.post('/start', protect, startInterview);
 router.post('/:id/answer', protect, submitAnswer);
 router.post('/:id/end', protect, endInterview);
 router.get('/:id', protect, getInterview);
+router.delete('/:id', protect, deleteInterview);
 
 module.exports = router;

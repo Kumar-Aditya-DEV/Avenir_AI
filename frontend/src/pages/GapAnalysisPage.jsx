@@ -79,7 +79,7 @@ export default function GapAnalysisPage() {
   useEffect(() => {
     const fetchAnalysis = async () => {
       try {
-        const analysisId = localStorage.getItem('avenir_analysis_id');
+        const analysisId = localStorage.getItem('avenir_view_analysis_id') || localStorage.getItem('avenir_analysis_id');
         const token = localStorage.getItem('token');
         
         if (!analysisId) {

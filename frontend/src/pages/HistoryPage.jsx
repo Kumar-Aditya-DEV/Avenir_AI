@@ -31,7 +31,7 @@ import {
   User
 } from 'lucide-react';
 
-export default function HistoryPage() {
+export default function HistoryPage({ onNavigate }) {
   const [loading, setLoading] = useState(true);
   const [viewType, setViewType] = useState('card'); // card | table | timeline
   
@@ -151,18 +151,58 @@ export default function HistoryPage() {
     setActiveVersionKebab(null);
   };
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
+    const token = localStorage.getItem('token');
 
     if (deleteTarget.type === 'analysis') {
-      setAnalyses(analyses.filter((a) => a.id !== deleteTarget.id));
-      triggerToast('Analysis hidden successfully!', 'success');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/analysis/${deleteTarget.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setAnalyses(analyses.filter((a) => a.id !== deleteTarget.id));
+          triggerToast('Analysis deleted successfully!', 'success');
+        } else {
+          triggerToast('Failed to delete analysis.', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        triggerToast('Error deleting analysis.', 'error');
+      }
     } else if (deleteTarget.type === 'session') {
-      setSessions(sessions.filter((s) => s.id !== deleteTarget.id));
-      triggerToast('Interview session hidden successfully!', 'success');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/interviews/${deleteTarget.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setSessions(sessions.filter((s) => s.id !== deleteTarget.id));
+          triggerToast('Interview session deleted successfully!', 'success');
+        } else {
+          triggerToast('Failed to delete session.', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        triggerToast('Error deleting session.', 'error');
+      }
     } else if (deleteTarget.type === 'version') {
-      setVersions(versions.filter((v) => v.id !== deleteTarget.id));
-      triggerToast('Resume version hidden successfully!', 'success');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/resumes/${deleteTarget.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          setVersions(versions.filter((v) => v.id !== deleteTarget.id));
+          triggerToast('Resume version deleted successfully!', 'success');
+        } else {
+          triggerToast('Failed to delete resume.', 'error');
+        }
+      } catch (err) {
+        console.error(err);
+        triggerToast('Error deleting resume.', 'error');
+      }
     }
 
     setShowDeleteModal(false);
@@ -290,7 +330,9 @@ export default function HistoryPage() {
               <Trash2 className="w-12 h-12 text-[#EF4444] mx-auto mb-4" />
               <h3 className="text-base font-extrabold text-[#111827] mb-2">Are you sure?</h3>
               <p className="text-xs text-[#6B7280] mb-6 leading-relaxed">
-                This action will hide this item from your dashboard.
+                {deleteTarget?.type === 'analysis' 
+                  ? 'This action will permanently delete this analysis and all its data.' 
+                  : 'This action will remove this item from your dashboard.'}
               </p>
               <div className="flex gap-3">
                 <button
@@ -303,7 +345,7 @@ export default function HistoryPage() {
                   onClick={handleDeleteConfirm}
                   className="flex-1 py-2.5 bg-[#EF4444] hover:bg-red-600 text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm hover:shadow-red-200"
                 >
-                  Hide
+                  Delete
                 </button>
               </div>
             </motion.div>
@@ -642,7 +684,10 @@ export default function HistoryPage() {
                         {/* Buttons */}
                         <div className="flex gap-2">
                           <button
-                            onClick={() => triggerToast(`Report viewing coming soon!`, 'success')}
+                            onClick={() => {
+                              localStorage.setItem('avenir_view_analysis_id', item.id);
+                              if (onNavigate) onNavigate('gap');
+                            }}
                             className="flex-1 py-2 bg-gradient-to-r from-[#2563EB] to-[#7C3AED] hover:from-[#3B82F6] hover:to-[#8B5CF6] text-white text-xs font-bold rounded-xl cursor-pointer"
                           >
                             View Report
@@ -678,9 +723,9 @@ export default function HistoryPage() {
                                   setDeleteTarget({ id: item.id, type: 'analysis' });
                                   setShowDeleteModal(true);
                                 }}
-                                className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#EF4444] hover:bg-red-50 rounded-lg text-left"
+                                className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#EF4444] hover:bg-red-50 rounded-lg text-left cursor-pointer"
                               >
-                                <Trash2 size={12} /> Hide
+                                <Trash2 size={12} /> Delete
                               </button>
                             </motion.div>
                           )}
@@ -726,8 +771,11 @@ export default function HistoryPage() {
                           <td className="px-6 py-4 text-[#6B7280]">{item.version}</td>
                           <td className="px-6 py-4 text-right flex items-center justify-end gap-1.5">
                             <button
-                              onClick={() => triggerToast(`Report viewing coming soon!`, 'success')}
-                              className="p-1.5 hover:bg-[#EFF6FF] text-[#2563EB] rounded"
+                              onClick={() => {
+                                localStorage.setItem('avenir_view_analysis_id', item.id);
+                                if (onNavigate) onNavigate('gap');
+                              }}
+                              className="p-1.5 hover:bg-[#EFF6FF] text-[#2563EB] rounded cursor-pointer"
                               title="View report"
                             >
                               <FileText size={14} />
@@ -744,8 +792,8 @@ export default function HistoryPage() {
                                 setDeleteTarget({ id: item.id, type: 'analysis' });
                                 setShowDeleteModal(true);
                               }}
-                              className="p-1.5 hover:bg-red-50 text-[#EF4444] rounded"
-                              title="Hide record"
+                              className="p-1.5 hover:bg-red-50 text-[#EF4444] rounded cursor-pointer"
+                              title="Delete record"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -995,7 +1043,7 @@ export default function HistoryPage() {
                                 }}
                                 className="flex items-center gap-2 px-3 py-2 text-xs font-bold text-[#EF4444] hover:bg-red-50 rounded-lg text-left"
                               >
-                                <Trash2 size={12} /> Hide
+                                <Trash2 size={12} /> Delete
                               </button>
                             </motion.div>
                           )}

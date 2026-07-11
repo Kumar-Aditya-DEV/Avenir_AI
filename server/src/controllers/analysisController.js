@@ -183,8 +183,25 @@ const getAnalysis = async (req, res) => {
   }
 };
 
+// @desc    Delete an analysis
+// @route   DELETE /api/analysis/:id
+// @access  Private
+const deleteAnalysis = async (req, res) => {
+  try {
+    const analysis = await Analysis.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found or unauthorized' });
+    }
+    res.status(200).json({ message: 'Analysis deleted successfully' });
+  } catch (error) {
+    console.error('Delete analysis error:', error);
+    res.status(500).json({ message: 'Server error deleting analysis', error: error.message });
+  }
+};
+
 module.exports = {
   scrapeJobUrl,
   analyzeGap,
-  getAnalysis
+  getAnalysis,
+  deleteAnalysis
 };

@@ -204,9 +204,26 @@ const getInterview = async (req, res) => {
   }
 };
 
+// @desc    Delete an Interview session by ID
+// @route   DELETE /api/interviews/:id
+// @access  Private
+const deleteInterview = async (req, res) => {
+  try {
+    const interview = await MockInterview.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found or unauthorized' });
+    }
+    res.status(200).json({ message: 'Interview deleted successfully' });
+  } catch (error) {
+    console.error('Delete interview error:', error);
+    res.status(500).json({ message: 'Server error deleting interview', error: error.message });
+  }
+};
+
 module.exports = {
   startInterview,
   submitAnswer,
   endInterview,
   getInterview,
+  deleteInterview
 };

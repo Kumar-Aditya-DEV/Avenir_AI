@@ -48,7 +48,11 @@ export default function Sidebar({
           const active = activeNav === id;
           return (
             <motion.button key={id} whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setActiveNav(id); setSidebarOpen(false); }}
+              onClick={() => { 
+                localStorage.removeItem('avenir_view_analysis_id');
+                setActiveNav(id); 
+                setSidebarOpen(false); 
+              }}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer
                 ${active ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold' : 'text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#111827]'}`}>
               <Icon size={18} className={active ? 'text-[#2563EB]' : 'text-[#9CA3AF]'} />
@@ -61,7 +65,7 @@ export default function Sidebar({
           );
         })}
         <div className="w-full h-px bg-[#E5E7EB] my-2" />
-        <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }} onClick={() => { setActiveNav('settings'); setSidebarOpen(false); }}
+        <motion.button whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }} onClick={() => { localStorage.removeItem('avenir_view_analysis_id'); setActiveNav('settings'); setSidebarOpen(false); }}
           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${activeNav === 'settings' ? 'bg-[#EFF6FF] text-[#2563EB] font-semibold' : 'text-[#6B7280] hover:bg-[#F8FAFC] hover:text-[#111827]'}`}>
           <Settings size={18} className={activeNav === 'settings' ? 'text-[#2563EB]' : 'text-[#9CA3AF]'} />
           Settings
