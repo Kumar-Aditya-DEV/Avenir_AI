@@ -1,0 +1,212 @@
+const axios = require('axios');
+const Analysis = require('../models/Analysis');
+const MockInterview = require('../models/MockInterview');
+
+const OLLAMA_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434/api/chat';
+
+// @desc    Start a new Mock Interview session
+// @route   POST /api/interviews/start
+// @access  Private
+const startInterview = async (req, res) => {
+  const { analysisId } = req.body;
+
+  if (!analysisId) {
+    res.status(400);
+    throw new Error('Please provide an analysisId');
+  }
+
+  try {
+    const analysis = await Analysis.findById(analysisId);
+    if (!analysis) {
+      res.status(404);
+      throw new Error('Analysis not found');
+    }
+
+    if (analysis.user.toString() !== req.user._id.toString()) {
+      res.status(401);
+      throw new Error('Not authorized to access this analysis');
+    }
+
+    const missingSkills = analysis.missingSkills.join(', ') || 'General Technical Skills';
+    const matchedSkills = analysis.matchedSkills.join(', ') || 'General Qualifications';
+
+    const systemPrompt = `You are a strict, professional technical interviewer for a ${analysis.jobTitle} position at ${analysis.company || 'a top tech company'}.
+Your task is to conduct a mock interview with the candidate. 
+The candidate has strong skills in: ${matchedSkills}.
+However, they might be lacking or need to prove their skills in: ${missingSkills}.
+
+Rules:
+1. Ask ONE question at a time. Do not provide multiple questions.
+2. If the candidate answers well, you can ask a follow-up question to dig deeper into their reasoning or tools they mentioned.
+3. If their answer is poor, you can politely point out what they missed and move on to the next topic.
+4. Keep your responses concise, professional, and realistic to a real interview setting.
+5. NEVER break character. Do not say "I am an AI".
+6. Start the interview by briefly introducing yourself and asking the first technical question based on their missing skills or core job requirements.`;
+
+    const initialMessages = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // Get the first question from LLM
+    const llmResponse = await axios.post(OLLAMA_URL, {
+      model: 'llama3.2',
+      messages: initialMessages,
+      stream: false,
+    });
+
+    const aiMessage = llmResponse.data.message.content;
+
+    // Create Interview session in DB
+    const mockInterview = await MockInterview.create({
+      user: req.user._id,
+      analysis: analysisId,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'interviewer', content: aiMessage }
+      ],
+    });
+
+    res.status(201).json(mockInterview);
+  } catch (error) {
+    console.error(error);
+    res.status(500);
+    throw new Error(error.message || 'Error starting mock interview');
+  }
+};
+
+// @desc    Submit an answer and get the next AI question
+// @route   POST /api/interviews/:id/answer
+// @access  Private
+const submitAnswer = async (req, res) => {
+  const { answer } = req.body;
+  
+  if (!answer) {
+    res.status(400);
+    throw new Error('Please provide an answer');
+  }
+
+  try {
+    const interview = await MockInterview.findOne({ _id: req.params.id, user: req.user._id });
+    
+    if (!interview) {
+      res.status(404);
+      throw new Error('Interview session not found');
+    }
+
+    if (interview.status === 'Completed') {
+      res.status(400);
+      throw new Error('This interview is already completed');
+    }
+
+    // Append user's answer
+    interview.messages.push({ role: 'candidate', content: answer });
+
+    // Format messages for Ollama API
+    // Ollama chat format expects: { role: 'system'|'user'|'assistant', content: '...' }
+    const ollamaMessages = interview.messages.map(msg => ({
+      role: msg.role === 'candidate' ? 'user' : (msg.role === 'interviewer' ? 'assistant' : 'system'),
+      content: msg.content
+    }));
+
+    // Get next response from LLM
+    const llmResponse = await axios.post(OLLAMA_URL, {
+      model: 'llama3.2',
+      messages: ollamaMessages,
+      stream: false,
+    });
+
+    const aiMessage = llmResponse.data.message.content;
+
+    // Append AI response
+    interview.messages.push({ role: 'interviewer', content: aiMessage });
+
+    await interview.save();
+
+    res.status(200).json(interview);
+  } catch (error) {
+    console.error(error);
+    res.status(500);
+    throw new Error('Error submitting answer');
+  }
+};
+
+// @desc    End the interview and get final feedback
+// @route   POST /api/interviews/:id/end
+// @access  Private
+const endInterview = async (req, res) => {
+  try {
+    const interview = await MockInterview.findOne({ _id: req.params.id, user: req.user._id });
+    
+    if (!interview) {
+      res.status(404);
+      throw new Error('Interview session not found');
+    }
+
+    if (interview.status === 'Completed') {
+      return res.status(200).json(interview);
+    }
+
+    const ollamaMessages = interview.messages.map(msg => ({
+      role: msg.role === 'candidate' ? 'user' : (msg.role === 'interviewer' ? 'assistant' : 'system'),
+      content: msg.content
+    }));
+
+    // Add a final prompt asking for evaluation
+    ollamaMessages.push({
+      role: 'user',
+      content: 'The interview is now over. Please provide a final evaluation of my performance. Output STRICTLY as a JSON object with the following schema: { "score": Number (0-100), "lackingAreas": ["List of specific concepts I lacked knowledge in or answered poorly"] }. Do not include markdown or other text.'
+    });
+
+    // We use the /api/chat endpoint but enforce a JSON response format for this final call
+    const llmResponse = await axios.post(OLLAMA_URL, {
+      model: 'llama3.2',
+      messages: ollamaMessages,
+      format: 'json',
+      stream: false,
+    });
+
+    const aiMessage = llmResponse.data.message.content;
+    let parsedData = { score: null, lackingAreas: [] };
+    
+    try {
+      parsedData = JSON.parse(aiMessage.trim());
+    } catch (err) {
+      console.error("Failed to parse LLM JSON for interview feedback:", aiMessage);
+    }
+
+    interview.status = 'Completed';
+    interview.score = parsedData.score || 0;
+    interview.finalFeedback = parsedData.lackingAreas || [];
+
+    await interview.save();
+
+    res.status(200).json(interview);
+  } catch (error) {
+    console.error(error);
+    res.status(500);
+    throw new Error('Error ending interview');
+  }
+};
+
+// @desc    Get an Interview session by ID
+// @route   GET /api/interviews/:id
+// @access  Private
+const getInterview = async (req, res) => {
+  try {
+    const interview = await MockInterview.findOne({ _id: req.params.id, user: req.user._id });
+    if (!interview) {
+      return res.status(404).json({ message: 'Interview not found' });
+    }
+    res.status(200).json(interview);
+  } catch (error) {
+    console.error('Get interview error:', error);
+    res.status(500).json({ message: 'Server error fetching interview', error: error.message });
+  }
+};
+
+module.exports = {
+  startInterview,
+  submitAnswer,
+  endInterview,
+  getInterview,
+};
