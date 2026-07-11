@@ -29,7 +29,7 @@ const scrapeJobUrl = async (req, res) => {
 
     // Extract text from the body
     let text = $('body').text();
-
+    
     // Clean up whitespace
     text = text.replace(/\s+/g, ' ').trim();
 
@@ -69,6 +69,10 @@ const analyzeGap = async (req, res) => {
 
     // 2. Construct the Prompt for Llama 3.2
     const systemPrompt = `
+You are an expert Applicant Tracking System (ATS) and Technical Recruiter.
+Your task is to evaluate a candidate's Resume against a provided Job Description.
+
+FOLLOW THESE STEPS IN ORDER:
 You will receive:
 
 1. A Job Description
@@ -308,23 +312,123 @@ Never include a skill in both lists.
 
 Calculate the final score by summing these 6 sections (Total = 100).
 
-====================================================
-OUTPUT FORMAT
-====================================================
+then, once all of the above is done, also perform a deep technical interview to evaluate the candidate's actual understanding of the concepts.
+1. Read the Job Description carefully. Identify the core technical skills required.
+2. If the Job Description is very short (e.g. just a title like 'Prompt Engineer' or 'AI Developer'), you MUST infer the standard, industry-expected technical skills for that role (e.g. LLMs, Python, OpenAI API).
+3. DO NOT look at the candidate's resume during steps 1 and 2. The requirements must be based ONLY on the Job Description or standard industry expectations for that role. DO NOT hallucinate skills like 'React' or 'Tailwind' for an AI Developer just because they are in the candidate's resume.
+4. Now, compare the candidate's Resume against your identified requirements.
+5. Create a 'skillMatchingAnalysis' explaining exactly where in the resume each required skill was found (or note if it is missing). Do NOT hallucinate matches. A skill is only matched if explicitly present in the resume text.
+6. Create a list of 'matchedSkills' (skills the candidate has that are in your requirements, based on your analysis).
+7. Create a list of 'missingSkills' (skills in your requirements that the candidate lacks).
+8. Calculate a holistic 'atsScore' from 0 to 100 representing how well the candidate fits the role.
 
 Output the response STRICTLY as a JSON object with the following schema:
 {
-  "identifiedJobRequirements": ["Skill1", "Skill2", "... (List all core technical skills required for this role BEFORE comparing to the resume)"],
+  "identifiedJobRequirements": ["Skill1", "Skill2", "Skill3", "... (List all core technical skills required for this role BEFORE comparing to the resume)"],
   "skillMatchingAnalysis": "String (Briefly explain which required skills were found in the resume text and which were missing. Verify carefully!)",
-  "atsScore": "<integer from 0 to 100>",
-  "matchedSkills": ["Skill1", "Skill2", "... (Must be a strict subset of identifiedJobRequirements, proven by your analysis)"],
-  "missingSkills": ["Skill3", "Skill4", "... (Must be a strict subset of identifiedJobRequirements, proven by your analysis)"],
-  "feedback": "String (Short 2-3 sentence overall feedback explaining the score calculation.)",
-  "extractedJobTitle": "String (Extract the job title from the JD. If none is found, infer one based on the description)",
-  "extractedCompany": "String (Extract the company name from the JD if present, else output 'Unknown Company')"
+  "atsScore": what you have calculated above,
+  "matchedSkills": ["Skill1", "Skill2", "... (Must be a subset of identifiedJobRequirements, proven by your analysis)"],
+  "missingSkills": ["Skill3", "Skill4", "... (Must be a subset of identifiedJobRequirements, proven by your analysis)"],
+  "feedback": "Short 2-3 sentence overall feedback explaining the score calculation.",
+  "extractedJobTitle": "Extract the job title from the JD. If none is found, infer one based on the description",
+  "extractedCompany": "Extract the company name from the JD if present, else output 'Unknown Company'"
 }
 Do not include any markdown formatting, backticks, or other text outside the JSON object. Just the raw JSON.
-
 `;
 
-    const userPrompt = `undefined
+    const userPrompt = `
+--- JOB DESCRIPTION ---
+${jobDescription}
+
+--- RESUME TEXT ---
+${resumeText}
+`;
+
+    // 3. Call Local Llama 3.2 (Ollama)
+    const ollamaUrl = process.env.OLLAMA_API_URL || 'http://localhost:11434/api/generate';
+    
+    const llmResponse = await axios.post(ollamaUrl, {
+      model: 'llama3.2',
+      prompt: systemPrompt + '\n\n' + userPrompt,
+      format: 'json',
+      stream: false,
+    });
+
+    const llmText = llmResponse.data.response;
+    
+    // Parse the JSON
+    let parsedData;
+    try {
+      parsedData = JSON.parse(llmText.trim());
+    } catch (err) {
+      console.error("Failed to parse LLM JSON:", llmText);
+      throw new Error('AI returned an invalid response format.');
+    }
+
+    // 4. Save to Database
+    let finalJobTitle = jobTitle;
+    let finalCompany = company;
+
+    // If the frontend sent defaults, override them with the AI-extracted values
+    if (!finalJobTitle || finalJobTitle === 'Target Role') {
+      finalJobTitle = parsedData.extractedJobTitle || 'Target Role';
+    }
+    if (!finalCompany || finalCompany === 'Target Company') {
+      finalCompany = parsedData.extractedCompany || 'Target Company';
+    }
+
+    const analysis = await Analysis.create({
+      user: req.user._id,
+      resume: resumeId,
+      jobTitle: finalJobTitle,
+      company: finalCompany,
+      atsScore: parsedData.atsScore || 0,
+      matchedSkills: parsedData.matchedSkills || [],
+      missingSkills: parsedData.missingSkills || [],
+      feedback: parsedData.feedback || 'No feedback provided.',
+    });
+
+    res.status(201).json(analysis);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500);
+    throw new Error(error.message || 'Error analyzing gap');
+  }
+};
+
+const getAnalysis = async (req, res) => {
+  try {
+    const analysis = await Analysis.findOne({ _id: req.params.id, user: req.user._id });
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found' });
+    }
+    res.status(200).json(analysis);
+  } catch (error) {
+    console.error('Get analysis error:', error);
+    res.status(500).json({ message: 'Server error fetching analysis', error: error.message });
+  }
+};
+
+// @desc    Delete an analysis
+// @route   DELETE /api/analysis/:id
+// @access  Private
+const deleteAnalysis = async (req, res) => {
+  try {
+    const analysis = await Analysis.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    if (!analysis) {
+      return res.status(404).json({ message: 'Analysis not found or unauthorized' });
+    }
+    res.status(200).json({ message: 'Analysis deleted successfully' });
+  } catch (error) {
+    console.error('Delete analysis error:', error);
+    res.status(500).json({ message: 'Server error deleting analysis', error: error.message });
+  }
+};
+
+module.exports = {
+  scrapeJobUrl,
+  analyzeGap,
+  getAnalysis,
+  deleteAnalysis
+};
